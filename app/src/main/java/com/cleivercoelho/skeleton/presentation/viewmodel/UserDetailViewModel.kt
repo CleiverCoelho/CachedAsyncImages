@@ -5,33 +5,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.cleivercoelho.skeleton.domain.model.User
 import com.cleivercoelho.skeleton.domain.repository.UserRepository
-import com.cleivercoelho.skeleton.presentation.navigation.Route
 import com.cleivercoelho.skeleton.presentation.viewmodel.base.BaseViewModel
 import com.cleivercoelho.skeleton.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class UserDetailUiState(
-    val user: User? = null,
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
-
-sealed interface UserDetailEvent {
-    data object NavigateBack : UserDetailEvent
-    data class ShowSnackbar(val message: String) : UserDetailEvent
-    data class OpenEmail(val email: String) : UserDetailEvent
-    data class OpenPhone(val phone: String) : UserDetailEvent
-}
-
-sealed interface UserDetailAction {
-    data object BackClicked : UserDetailAction
-    data object EmailClicked : UserDetailAction
-    data object PhoneClicked : UserDetailAction
-    data object DeleteClicked : UserDetailAction
-    data object RetryClicked : UserDetailAction
-}
 
 @HiltViewModel
 class UserDetailViewModel @Inject constructor(
@@ -62,10 +40,12 @@ class UserDetailViewModel @Inject constructor(
     private fun loadUser() {
         viewModelScope.launch {
             setState { copy(isLoading = true, error = null) }
-            when (val result = repository.getUserById(userId)) {
-                is Resource.Success -> setState { copy(user = result.data, isLoading = false) }
-                is Resource.Error -> setState { copy(error = result.message, isLoading = false) }
-                is Resource.Loading -> Unit
+            repository.getUserById(userId).collect { result ->
+                when (result) {
+                    is Resource.Success -> setState { copy(user = result.data, isLoading = false) }
+                    is Resource.Error -> setState { copy(error = result.message, isLoading = false) }
+                    is Resource.Loading -> Unit
+                }
             }
         }
     }
@@ -77,4 +57,25 @@ class UserDetailViewModel @Inject constructor(
             sendEvent(UserDetailEvent.NavigateBack)
         }
     }
+}
+
+data class UserDetailUiState(
+    val user: User? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
+sealed interface UserDetailEvent {
+    data object NavigateBack : UserDetailEvent
+    data class ShowSnackbar(val message: String) : UserDetailEvent
+    data class OpenEmail(val email: String) : UserDetailEvent
+    data class OpenPhone(val phone: String) : UserDetailEvent
+}
+
+sealed interface UserDetailAction {
+    data object BackClicked : UserDetailAction
+    data object EmailClicked : UserDetailAction
+    data object PhoneClicked : UserDetailAction
+    data object DeleteClicked : UserDetailAction
+    data object RetryClicked : UserDetailAction
 }
