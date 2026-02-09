@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.cleivercoelho.skeleton.presentation.navigation.home.homeGraph
 import com.cleivercoelho.skeleton.presentation.ui.screens.HomeScreen
 import com.cleivercoelho.skeleton.presentation.ui.screens.UserDetailScreen
 
@@ -21,21 +22,6 @@ fun AppNavHost(
         startDestination = startDestination,
         modifier = modifier
     ) {
-        composable<Route.Home> {
-            HomeScreen(
-                onNavigateToUserDetail = { userId ->
-                    navController.navigate(Route.UserDetail(userId))
-                },
-                onNavigateToSettings = {
-                    navController.navigate(Route.Settings)
-                }
-            )
-        }
-
-        composable<Route.UserDetail> {
-            UserDetailScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
+        homeGraph(navController)
     }
 }

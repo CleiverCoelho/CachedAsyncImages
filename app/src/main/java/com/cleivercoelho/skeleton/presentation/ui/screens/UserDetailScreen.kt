@@ -21,6 +21,7 @@ import com.cleivercoelho.skeleton.presentation.viewmodel.UserDetailAction
 import com.cleivercoelho.skeleton.presentation.viewmodel.UserDetailEvent
 import com.cleivercoelho.skeleton.presentation.viewmodel.UserDetailViewModel
 import kotlinx.coroutines.flow.collectLatest
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,11 +39,11 @@ fun UserDetailScreen(
                 UserDetailEvent.NavigateBack -> onNavigateBack()
                 is UserDetailEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
                 is UserDetailEvent.OpenEmail -> {
-                    val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${event.email}"))
+                    val intent = Intent(Intent.ACTION_SENDTO, "mailto:${event.email}".toUri())
                     context.startActivity(intent)
                 }
                 is UserDetailEvent.OpenPhone -> {
-                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${event.phone}"))
+                    val intent = Intent(Intent.ACTION_DIAL, "tel:${event.phone}".toUri())
                     context.startActivity(intent)
                 }
             }
