@@ -1,0 +1,166 @@
+package com.cleivercoelho.skeleton.feature.userdetail
+
+import android.content.Intent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cleivercoelho.skeleton.core.ui.UserAvatar
+import kotlinx.coroutines.flow.collectLatest
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UserDetailScreen(
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: UserDetailViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                UserDetailEvent.NavigateBack -> onNavigateBack()
+                is UserDetailEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
+                is UserDetailEvent.OpenEmail -> {
+                    val intent = Intent(Intent.ACTION_SENDTO, "mailto:${event.email}".toUri())
+                    context.startActivity(intent)
+                }
+                is UserDetailEvent.OpenPhone -> {
+                    val intent = Intent(Intent.ACTION_DIAL, "tel:${event.phone}".toUri())
+                    context.startActivity(intent)
+                }
+            }
+        }
+    }
+
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text(uiState.user?.name ?: "User Details") },
+                navigationIcon = {
+                    IconButton(onClick = { viewModel.onAction(UserDetailAction.BackClicked) }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.onAction(UserDetailAction.DeleteClicked) }) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            )
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                uiState.error != null -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.onAction(UserDetailAction.RetryClicked) }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+                uiState.user != null -> {
+                    val user = uiState.user!!
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        UserAvatar(imageUrl = user.avatarUrl, size = 120.dp)
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Text(user.name, style = MaterialTheme.typography.headlineMedium)
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        OutlinedCard(
+                            onClick = { viewModel.onAction(UserDetailAction.EmailClicked) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Email, contentDescription = null)
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(user.email)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedCard(
+                            onClick = { viewModel.onAction(UserDetailAction.PhoneClicked) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Phone, contentDescription = null)
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(user.phone)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
